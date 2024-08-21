@@ -1,469 +1,337 @@
-{
- "cells": [
-  {
-   "cell_type": "code",
-   "execution_count": 1,
-   "id": "85051985-3dc8-4bc5-82f6-dd022f626a3b",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "# !pip install pulsestreamer\n",
-    "# !pip install nidaqmx\n",
-    "import numpy as np\n",
-    "import time\n",
-    "from tqdm import trange\n",
-    "import pulsestreamer\n",
-    "import pulsestreamer as psl\n",
-    "import nidaqmx\n",
-    "import nidaqmx.stream_readers\n",
-    "from pulsestreamer import PulseStreamer,findPulseStreamers,OutputState,TriggerStart,Sequence,TriggerRearm"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 10,
-   "id": "58099001-336e-4a8e-a661-27c68e3eca70",
-   "metadata": {
-    "jupyter": {
-     "source_hidden": true
-    }
-   },
-   "outputs": [],
-   "source": [
-    "# # loading the local Pulse Streamer and NIDAQmx\n",
-    "\n",
-    "# IPaddress = findPulseStreamers(search_serial='')[0][0]\n",
-    "# pulser = PulseStreamer(IPaddress)\n",
-    "\n",
-    "# DAQ_device = nidaqmx.system.System.local().devices[0]\n",
-    "# device_name = DAQ_device.terminals[0:1][0][1:5]\n",
-    "# print(f'NIDAQmx device name : {device_name}')"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 6,
-   "id": "afb0a72e-f928-42b9-96dd-db34d14f4146",
-   "metadata": {
-    "jupyter": {
-     "source_hidden": true
-    }
-   },
-   "outputs": [],
-   "source": [
-    "# # Delay Measurement Sequence\n",
-    "# def delay(rising_delay=8,gatelen = 35, laserontime = 300,delay_pad = 2,delay_shift = 2,gatesourcedelay=2):\n",
-    "    \n",
-    "#     seq = pulser.createSequence()\n",
-    "   \n",
-    "#     laserNum = 1\n",
-    "#     gateStart = 5\n",
-    "#     source=7\n",
-    "    \n",
-    "#     totaltime= 2*delay_pad + laserontime +2*rising_delay\n",
-    "#     # steps=int((totaltime-gatelen-2*rising_delay)/delay_shift)\n",
-    "#     steps=int((totaltime-2*gatelen-2*rising_delay)/delay_shift)\n",
-    "    \n",
-    "        \n",
-    "#     # i=0\n",
-    "#     for i in range(steps):\n",
-    "#     # while i<steps:\n",
-    "#         seq.setDigital(\n",
-    "#            laserNum,\n",
-    "#            [\n",
-    "#                (int(delay_pad+rising_delay), 0),\n",
-    "#                (int(laserontime), 1),\n",
-    "#                (int(rising_delay+delay_pad),0),\n",
-    "\n",
-    "#            ],\n",
-    "#         )\n",
-    "#         totaltime= 2*delay_pad + laserontime +2*rising_delay\n",
-    "#         gatingofftime=totaltime - gatelen - i*delay_shift-rising_delay\n",
-    "        \n",
-    "#         seq.setDigital(\n",
-    "#            gateStart,\n",
-    "#            [\n",
-    "#                (int(rising_delay),0),\n",
-    "#                (int(gatelen),1),\n",
-    "#                (int(i*delay_shift+rising_delay), 0),\n",
-    "#                (int(gatelen), 1),\n",
-    "#                (int(totaltime-2*rising_delay-2*gatelen-i*delay_shift), 0),\n",
-    "#            ],\n",
-    "#         )\n",
-    "#         time = int(rising_delay+gatelen+rising_delay+i*delay_shift)\n",
-    "#         seq.setDigital(\n",
-    "#            source,\n",
-    "#            [\n",
-    "#                (int(rising_delay),0),\n",
-    "#                (int(gatelen-gatesourcedelay),1),\n",
-    "#                (int(i*delay_shift+rising_delay+gatesourcedelay), 0),\n",
-    "#                (int(gatelen-gatesourcedelay), 1),\n",
-    "#                (int(totaltime-2*rising_delay-2*gatelen-i*delay_shift-gatesourcedelay), 0),\n",
-    "#            ],\n",
-    "#         )\n",
-    "#         yield seq,time\n",
-    "#         # i=i+1"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 5,
-   "id": "ef2aa42a-c90c-4755-8c03-d75ab31a2e36",
-   "metadata": {
-    "jupyter": {
-     "source_hidden": true
-    }
-   },
-   "outputs": [],
-   "source": [
-    "# # SNR Measurement Sequence\n",
-    "# def seqSNR(rising_delay = 50,gatelen = 50, laserontime = 3e3,delay_pad = 50,delay_shift = 0.1e3,gatesourcedelay = 5,evolution_time = 5e6):  \n",
-    "    \n",
-    "#     seq = pulser.createSequence()\n",
-    "   \n",
-    "#     laserNum = 1\n",
-    "#     gateStart = 5\n",
-    "#     source=7\n",
-    "    \n",
-    "#     steps=int((laserontime-gatelen)/delay_shift)\n",
-    "#     # print(f'Number of Steps : {steps}')\n",
-    "    \n",
-    "    \n",
-    "#     for i in range(steps):\n",
-    "        \n",
-    "#         seq.setDigital(\n",
-    "#            laserNum,\n",
-    "#            [\n",
-    "#                (int(delay_pad+rising_delay), 0),\n",
-    "#                (int(laserontime), 1),\n",
-    "#                (int(rising_delay), 0),\n",
-    "#                (int(laserontime), 1),\n",
-    "#                (int(rising_delay+evolution_time),0),\n",
-    "#                (int(laserontime), 1),\n",
-    "#                (int(delay_pad+rising_delay), 0),\n",
-    "\n",
-    "#            ],\n",
-    "#         )\n",
-    "        \n",
-    "#         seq.setDigital(\n",
-    "#            gateStart,\n",
-    "#             [\n",
-    "#                (int(delay_pad+rising_delay), 0),\n",
-    "#                (int(laserontime), 0),\n",
-    "#                (int(rising_delay), 0),\n",
-    "#                (int(gatelen+i*delay_shift), 1),\n",
-    "#                (int(laserontime-gatelen-i*delay_shift+rising_delay+evolution_time),0),\n",
-    "#                (int(gatelen+i*delay_shift), 1),\n",
-    "#                (int(delay_pad+rising_delay+laserontime-gatelen+i*delay_shift), 0),\n",
-    "\n",
-    "#            ],\n",
-    "#         )\n",
-    "        \n",
-    "#         time = int(gatelen+i*delay_shift)\n",
-    "        \n",
-    "#         seq.setDigital(\n",
-    "#            source,\n",
-    "#             [\n",
-    "#                (int(delay_pad+rising_delay), 0),\n",
-    "#                (int(laserontime), 0),\n",
-    "#                (int(rising_delay), 0),\n",
-    "#                (int(gatelen+i*delay_shift-gatesourcedelay), 1),\n",
-    "#                (int(laserontime-gatelen-i*delay_shift+gatesourcedelay+rising_delay+evolution_time),0),\n",
-    "#                (int(gatelen+i*delay_shift-gatesourcedelay), 1),\n",
-    "#                (int(delay_pad+rising_delay+laserontime-gatelen-i*delay_shift+gatesourcedelay), 0),\n",
-    "\n",
-    "#            ],\n",
-    "#         )\n",
-    "#         yield seq,time"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 7,
-   "id": "b5024bfe-bc89-4adc-b6c3-bef3fe8ae3ad",
-   "metadata": {
-    "jupyter": {
-     "source_hidden": true
-    }
-   },
-   "outputs": [],
-   "source": [
-    "# # T1 Measurement Sequence\n",
-    "# def seqT1(rising_delay = 100,gatelen = 2e3, laserontime = 20e3,delay_pad = 100,delay_shift = 100e3,gatesourcedelay = 5,evolution_time = 5e6):  \n",
-    "    \n",
-    "#     seq = pulser.createSequence()\n",
-    "   \n",
-    "#     laserNum = 1\n",
-    "#     gateStart = 5\n",
-    "#     source=7\n",
-    "    \n",
-    "#     total_time= delay_pad+rising_delay+laserontime+rising_delay+laserontime+rising_delay+evolution_time+laserontime+rising_delay+delay_pad\n",
-    "#     steps=int(evolution_time/delay_shift)\n",
-    "#     # print(f'Number of Steps : {steps}')\n",
-    "    \n",
-    "    \n",
-    "#     for i in range(steps):\n",
-    "#         laser_offtime = total_time - delay_pad -3*rising_delay-3*laserontime-i*delay_shift\n",
-    "#         seq.setDigital(\n",
-    "#            laserNum,\n",
-    "#            [\n",
-    "#                (int(delay_pad+rising_delay), 0),\n",
-    "#                (int(laserontime), 1),\n",
-    "#                (int(rising_delay), 0),\n",
-    "#                (int(laserontime), 1),\n",
-    "#                (int(rising_delay+i*delay_shift),0),\n",
-    "#                (int(laserontime), 1),\n",
-    "#                (int(delay_pad+rising_delay), 0),\n",
-    "\n",
-    "#            ],\n",
-    "#         )\n",
-    "        \n",
-    "#         gate_offtime = total_time - delay_pad -3*rising_delay-2*laserontime-gatelen-i*delay_shift\n",
-    "#         seq.setDigital(\n",
-    "#            gateStart,\n",
-    "#             [\n",
-    "#                (int(delay_pad+rising_delay), 0),\n",
-    "#                (int(laserontime), 0),\n",
-    "#                (int(rising_delay), 0),\n",
-    "#                (int(gatelen), 1),\n",
-    "#                (int(laserontime-gatelen+rising_delay+i*delay_shift),0),\n",
-    "#                (int(gatelen), 1),\n",
-    "#                (int(delay_pad+rising_delay+laserontime-gatelen), 0),\n",
-    "\n",
-    "#            ],\n",
-    "#         )\n",
-    "        \n",
-    "#         time = int(rising_delay+i*delay_shift)\n",
-    "        \n",
-    "#         seq.setDigital(\n",
-    "#            source,\n",
-    "#             [\n",
-    "#                (int(delay_pad+rising_delay), 0),\n",
-    "#                (int(laserontime), 0),\n",
-    "#                (int(rising_delay), 0),\n",
-    "#                (int(gatelen-gatesourcedelay), 1),\n",
-    "#                (int(laserontime-gatelen+gatesourcedelay+rising_delay+i*delay_shift),0),\n",
-    "#                (int(gatelen-gatesourcedelay), 1),\n",
-    "#                (int(delay_pad+rising_delay+laserontime-gatelen+gatesourcedelay), 0),\n",
-    "\n",
-    "#            ],\n",
-    "#         )\n",
-    "#         yield seq,time"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 8,
-   "id": "f16e4da2-325d-4bc5-b8c5-67074dbbb904",
-   "metadata": {
-    "jupyter": {
-     "source_hidden": true
-    }
-   },
-   "outputs": [],
-   "source": [
-    "# # plotting Sequence \n",
-    "# sequence = seqSNR(rising_delay = 50,gatelen = 50, laserontime = 300,delay_pad = 50,delay_shift = 50,gatesourcedelay = 5,evolution_time = 5000)\n",
-    "\n",
-    "# seq_number = 1\n",
-    "# for seq in sequence:\n",
-    "#     print(f'Seq. No. : {seq_number}'); seq_number+=1\n",
-    "#     seq[0].plot()"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 9,
-   "id": "d58f7fad-2054-4e38-a9d5-cf646480bb8c",
-   "metadata": {
-    "jupyter": {
-     "source_hidden": true
-    }
-   },
-   "outputs": [],
-   "source": [
-    "# # getting time axis \n",
-    "# def get_time(rising_delay,gatelen, laserontime,delay_pad,delay_shift,gatesourcedelay,evolution_time,exp='T1'): \n",
-    "#     delay_time = []\n",
-    "#     if exp=='T1':\n",
-    "#         sequence_time = seqT1(rising_delay = rising_delay,gatelen = gatelen, laserontime = laserontime,\n",
-    "#                                               delay_pad = delay_pad,delay_shift = delay_shift,gatesourcedelay = gatesourcedelay,evolution_time = evolution_time)\n",
-    "#     if exp.upper()=='SNR':\n",
-    "#         sequence_time = seqSNR(rising_delay = rising_delay,gatelen = gatelen, laserontime = laserontime,\n",
-    "#                                               delay_pad = delay_pad,delay_shift = delay_shift,gatesourcedelay = gatesourcedelay,evolution_time = evolution_time)\n",
-    "#     for t in sequence_time:\n",
-    "#         delay_time.append(t[1])\n",
-    "\n",
-    "#     delay_time = np.array(delay_time)\n",
-    "#     return delay_time"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 14,
-   "id": "1acd97bd-3c7e-4fdd-9ced-9225d53b1633",
-   "metadata": {
-    "jupyter": {
-     "source_hidden": true
-    }
-   },
-   "outputs": [],
-   "source": [
-    "# # measuremet function \n",
-    "# def measure(path,samples=500,averages=5,xMin=1.629,yMin=0.458,comment='',\n",
-    "#                rising_delay = 50,gatelen = 50, laserontime = 3e3,delay_pad = 50,delay_shift = 0.1e3,gatesourcedelay = 5,evolution_time = 5e6,\n",
-    "#                filenumber=1,filename='T1'):\n",
-    "    \n",
-    "#     total_time= delay_pad+rising_delay+laserontime+rising_delay+laserontime+rising_delay+evolution_time+laserontime+rising_delay+delay_pad\n",
-    "#     steps=int(evolution_time/delay_shift)               #for T1 \n",
-    "#     # steps=int((laserontime-gatelen)/delay_shift)          #for SNR\n",
-    "#     print(f'Number of Steps : {steps}')\n",
-    "    \n",
-    "#     numberofpoints=samples*2  # with reference \n",
-    "#     # numberofpoints=samples  # without reference \n",
-    "    \n",
-    "#     # pixel=samples*steps\n",
-    "#     pixel=numberofpoints*steps \n",
-    "#     print(f'Pixel : {pixel}')\n",
-    "#     DAQ_device.reset_device()\n",
-    "#     pulser.reset()\n",
-    "#     print(\"creating sequence\")\n",
-    "   \n",
-    "#     # Counter\n",
-    "#     CountWidth = nidaqmx.Task()\n",
-    "#     ciChannel = CountWidth.ci_channels.add_ci_count_edges_chan('/Dev1/ctr1',edge=nidaqmx.constants.Edge.RISING, initial_count=0,\n",
-    "#                                                                count_direction=nidaqmx.constants.CountDirection.COUNT_UP) # which specification are we measuring here?\n",
-    "\n",
-    "#     CountWidth.triggers.pause_trigger.dig_lvl_src='/Dev1/PFI4'\n",
-    "#     CountWidth.triggers.pause_trigger.trig_type=nidaqmx.constants.TriggerType.DIGITAL_LEVEL\n",
-    "#     CountWidth.triggers.pause_trigger.dig_lvl_when=nidaqmx.constants.Level.LOW\n",
-    "\n",
-    "\n",
-    "#     #CountWidth.timing.cfg_implicit_timing(sample_mode = nidaqmx.constants.AcquisitionType.FINITE, samps_per_chan=(pixel)*averages)#samps per channel defines the buffer size for the memory\n",
-    "#     CountWidth.timing.cfg_samp_clk_timing(rate=1e8,source='/Dev1/PFI5',active_edge=nidaqmx.constants.Edge.FALLING,\n",
-    "#                                           sample_mode = nidaqmx.constants.AcquisitionType.FINITE, samps_per_chan=(pixel)*averages )\n",
-    "#     cps = []\n",
-    "#     callback=[]  \n",
-    "   \n",
-    "#     #Pulse streamer gating\n",
-    "#     # Digital output\n",
-    "#     DigChannel = 'Dev1/port0/line7' #connect this to PFI 4 #this is ctr 1 gate\n",
-    "#     DigTask = nidaqmx.Task()\n",
-    "#     DigTask.do_channels.add_do_chan(lines = DigChannel)\n",
-    "#     DigChannel = 'Dev1/port0/line7' #Defining the port for taking the output\n",
-    "   \n",
-    "   \n",
-    "#     def readBuffer(task_handle, every_n_samples_event_type, number_of_samples, callback_data):\n",
-    "#         CountWidth.in_stream.read_all_avail_samp = True\n",
-    "#         readPixels=readerWidth.read_many_sample_uint32(highCount, number_of_samples_per_channel=- 1, timeout=10.0)\n",
-    "#         cps.extend(highCount)\n",
-    "#         callback.extend([1])\n",
-    "#         return 0\n",
-    "\n",
-    "#     buffersamplecount=numberofpoints\n",
-    "#     # buffersamplecount=samples\n",
-    "    \n",
-    "#     # Counter read task\n",
-    "#     readerWidth = nidaqmx.stream_readers.CounterReader(CountWidth.in_stream)    \n",
-    "#     highCount = np.zeros(buffersamplecount, dtype = np.uint32)\n",
-    "#     lowCount =  np.zeros(buffersamplecount,dtype = np.uint32)\n",
-    "\n",
-    "\n",
-    "#     # Read after filling the buffer with given number of samples\n",
-    "#     CountWidth.register_every_n_samples_acquired_into_buffer_event(buffersamplecount,readBuffer) #after every pixel it will trigger the callback\n",
-    "\n",
-    "   \n",
-    "#     # Start tasks (digital output will be triggered by analog output)\n",
-    "#     print(\"starting DAQ\")\n",
-    "#     CountWidth.start()\n",
-    "#     #Adding infinite loop\n",
-    "#     t=0\n",
-    "#     waittime=(delay_pad + laserontime)*samples*1e-9\n",
-    "   \n",
-    "#     run=0\n",
-    "#     data=[]\n",
-    "#     finaldata=[]\n",
-    "#     print(\"Preparing Ni Daq for the experiment\")\n",
-    "#     print(\"callback number in beginning:\",len(callback))\n",
-    "\n",
-    "#     i=0\n",
-    "#     for run in trange(averages):\n",
-    "#     # while run<(averages):\n",
-    "#         sequence_time=seqT1(rising_delay = rising_delay,gatelen = gatelen, laserontime = laserontime,\n",
-    "#                                           delay_pad = delay_pad,delay_shift = delay_shift,gatesourcedelay = gatesourcedelay,evolution_time = evolution_time)\n",
-    "#         # sequence_time= seqSNR(rising_delay = rising_delay,gatelen = gatelen, laserontime = laserontime,\n",
-    "#         #                       delay_pad = delay_pad,delay_shift = delay_shift,gatesourcedelay = gatesourcedelay,evolution_time = evolution_time)\n",
-    "#         pulser.setTrigger(start=psl.TriggerStart.HARDWARE_RISING,rearm=psl.TriggerRearm.AUTO)\n",
-    "#         seq_num=0\n",
-    "       \n",
-    "#         for s in sequence_time:\n",
-    "#             t1=len(callback)\n",
-    "           \n",
-    "#             seq_num=seq_num+1\n",
-    "#             print(seq_num)\n",
-    "#             i+=1\n",
-    "#             pulser.stream(s[0], n_runs=samples)         \n",
-    "\n",
-    "#             DigTask.write(True)\n",
-    "#             while len(callback)==t1:\n",
-    "#                 time.sleep(0.001)         \n",
-    "#             DigTask.write(False)\n",
-    "         \n",
-    "#         run=run+1\n",
-    "#         print(f\"callback number after {run}-th average end: {len(callback)}\")\n",
-    "        \n",
-    "#     print(f'Total Run : {i}')\n",
-    "#     delaydata=signal_counts(cps,pixel,numberofpoints,steps)   \n",
-    "#     experiment = input('Enter T1 or SNR')\n",
-    "#     time_axis =get_time(rising_delay = rising_delay,gatelen = gatelen, laserontime = laserontime,\n",
-    "#                                           delay_pad = delay_pad,delay_shift = delay_shift,gatesourcedelay = gatesourcedelay,evolution_time = evolution_time,exp=experiment)\n",
-    "    \n",
-    "#     CountWidth.close()\n",
-    "#     DigTask.close()\n",
-    "#     params(samples,averages,filename,rising_delay ,gatelen , laserontime ,delay_pad ,delay_shift ,gatesourcedelay ,evolution_time)     \n",
-    "\n",
-    "#     print('returning averaged counts and time_axis')\n",
-    "#     return delaydata,time_axis\n",
-    "\n",
-    "# # Function to Modify the Data\n",
-    "# def signal_counts(all_counts,counts_in_one_average,numberofpoints,steps,*args):\n",
-    "#     all_counts=np.array(all_counts)\n",
-    "#     print(f'Total Counts & Counts in one average : {len(all_counts), counts_in_one_average}')\n",
-    "#     no_of_averages=int(len(all_counts)/counts_in_one_average)\n",
-    "#     print(\"Crosscheck number of averges=\",no_of_averages)\n",
-    "\n",
-    "#     # Changing the cumulative counts to actual counts\n",
-    "#     cumulative_counts = np.reshape(all_counts,(no_of_averages,counts_in_one_average))\n",
-    "#     modified_matrix = np.delete(cumulative_counts, -1, 1)\n",
-    "#     zero_array = np.zeros(no_of_averages, dtype=int)\n",
-    "#     new_matrix = np.hstack((zero_array[:, np.newaxis], modified_matrix))\n",
-    "#     actual_counts = np.subtract(cumulative_counts,new_matrix)\n",
-    "#     averaged_actual_counts = np.mean(actual_counts,axis=0)\n",
-    "\n",
-    "    \n",
-    "#     return averaged_actual_counts "
-   ]
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python 3 (ipykernel)",
-   "language": "python",
-   "name": "python3"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.11.7"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
-}
+# !pip install pulsestreamer
+# !pip install nidaqmx
+import numpy as np
+import time
+from tqdm import trange
+import pulsestreamer
+import pulsestreamer as psl
+import nidaqmx
+import nidaqmx.stream_readers
+from pulsestreamer import PulseStreamer,findPulseStreamers,OutputState,TriggerStart,Sequence,TriggerRearm
+
+
+# Delay Measurement Sequence
+def seqDelay(pulser,laserNum=1,gateStart=5,source=7,rising_delay=2,gatelen = 6, laserontime = 31,delay_pad = 2,delay_shift = 2,gatesourcedelay=2):
+    
+    seq = pulser.createSequence()
+   
+    laserNum = 1
+    gateStart = 5
+    source=7
+    
+    totaltime= 2*delay_pad + laserontime +2*rising_delay
+    # steps=int((totaltime-gatelen-2*rising_delay)/delay_shift)
+    steps=int((totaltime-2*gatelen-2*rising_delay)/delay_shift)
+    
+        
+    # i=0
+    for i in range(steps):
+    # while i<steps:
+        seq.setDigital(
+           laserNum,
+           [
+               (int(delay_pad+rising_delay), 0),
+               (int(laserontime), 1),
+               (int(rising_delay+delay_pad),0),
+
+           ],
+        )
+        totaltime= 2*delay_pad + laserontime +2*rising_delay
+        gatingofftime=totaltime - gatelen - i*delay_shift-rising_delay
+        
+        seq.setDigital(
+           gateStart,
+           [
+               (int(rising_delay),0),
+               (int(gatelen),1),
+               (int(i*delay_shift+rising_delay), 0),
+               (int(gatelen), 1),
+               (int(totaltime-2*rising_delay-2*gatelen-i*delay_shift), 0),
+           ],
+        )
+        time = int(rising_delay+gatelen+rising_delay+i*delay_shift)
+        seq.setDigital(
+           source,
+           [
+               (int(rising_delay),0),
+               (int(gatelen-gatesourcedelay),1),
+               (int(i*delay_shift+rising_delay+gatesourcedelay), 0),
+               (int(gatelen-gatesourcedelay), 1),
+               (int(totaltime-2*rising_delay-2*gatelen-i*delay_shift-gatesourcedelay), 0),
+           ],
+        )
+        yield seq,time,steps
+        # i=i+1
+
+
+# SNR Measurement Sequence
+def seqSNR(pulser,laserNum=1,gateStart=5,source=7,rising_delay = 50,gatelen = 50, laserontime = 3e3,delay_pad = 50,delay_shift = 0.1e3,gatesourcedelay = 5,evolution_time = 5e6):  
+    
+    seq = pulser.createSequence()
+   
+    laserNum = 1
+    gateStart = 5
+    source=7
+    
+    steps=int((laserontime-gatelen)/delay_shift)
+    # print(f'Number of Steps : {steps}')
+    
+    
+    for i in range(steps):
+        
+        seq.setDigital(
+           laserNum,
+           [
+               (int(delay_pad+rising_delay), 0),
+               (int(laserontime), 1),
+               (int(rising_delay), 0),
+               (int(laserontime), 1),
+               (int(rising_delay+evolution_time),0),
+               (int(laserontime), 1),
+               (int(delay_pad+rising_delay), 0),
+
+           ],
+        )
+        
+        seq.setDigital(
+           gateStart,
+            [
+               (int(delay_pad+rising_delay), 0),
+               (int(laserontime), 0),
+               (int(rising_delay), 0),
+               (int(gatelen+i*delay_shift), 1),
+               (int(laserontime-gatelen-i*delay_shift+rising_delay+evolution_time),0),
+               (int(gatelen+i*delay_shift), 1),
+               (int(delay_pad+rising_delay+laserontime-gatelen+i*delay_shift), 0),
+
+           ],
+        )
+        
+        time = int(gatelen+i*delay_shift)
+        
+        seq.setDigital(
+           source,
+            [
+               (int(delay_pad+rising_delay), 0),
+               (int(laserontime), 0),
+               (int(rising_delay), 0),
+               (int(gatelen+i*delay_shift-gatesourcedelay), 1),
+               (int(laserontime-gatelen-i*delay_shift+gatesourcedelay+rising_delay+evolution_time),0),
+               (int(gatelen+i*delay_shift-gatesourcedelay), 1),
+               (int(delay_pad+rising_delay+laserontime-gatelen-i*delay_shift+gatesourcedelay), 0),
+
+           ],
+        )
+        yield seq,time,steps
+
+# T1 Measurement Sequence
+def seqT1(pulser,laserNum=1,gateStart=5,source=7,rising_delay = 100,gatelen = 2e3, laserontime = 20e3,delay_pad = 100,delay_shift = 100e3,gatesourcedelay = 5,evolution_time = 5e6):  
+    
+    seq = pulser.createSequence()
+   
+    laserNum = 1
+    gateStart = 5
+    source=7
+    
+    total_time= delay_pad+rising_delay+laserontime+rising_delay+laserontime+rising_delay+evolution_time+laserontime+rising_delay+delay_pad
+    steps=int(evolution_time/delay_shift)
+    
+    
+    for i in range(steps):
+        laser_offtime = total_time - delay_pad -3*rising_delay-3*laserontime-i*delay_shift
+        seq.setDigital(
+           laserNum,
+           [
+               (int(delay_pad+rising_delay), 0),
+               (int(laserontime), 1),
+               (int(rising_delay), 0),
+               (int(laserontime), 1),
+               (int(rising_delay+i*delay_shift),0),
+               (int(laserontime), 1),
+               (int(delay_pad+rising_delay), 0),
+
+           ],
+        )
+        
+        gate_offtime = total_time - delay_pad -3*rising_delay-2*laserontime-gatelen-i*delay_shift
+        seq.setDigital(
+           gateStart,
+            [
+               (int(delay_pad+rising_delay), 0),
+               (int(laserontime), 0),
+               (int(rising_delay), 0),
+               (int(gatelen), 1),
+               (int(laserontime-gatelen+rising_delay+i*delay_shift),0),
+               (int(gatelen), 1),
+               (int(delay_pad+rising_delay+laserontime-gatelen), 0),
+
+           ],
+        )
+        
+        time = int(rising_delay+i*delay_shift)
+        
+        seq.setDigital(
+           source,
+            [
+               (int(delay_pad+rising_delay), 0),
+               (int(laserontime), 0),
+               (int(rising_delay), 0),
+               (int(gatelen-gatesourcedelay), 1),
+               (int(laserontime-gatelen+gatesourcedelay+rising_delay+i*delay_shift),0),
+               (int(gatelen-gatesourcedelay), 1),
+               (int(delay_pad+rising_delay+laserontime-gatelen+gatesourcedelay), 0),
+
+           ],
+        )
+        yield seq,time,steps
+
+# getting time axis 
+def get_time(pulser,exp_name,specifications): 
+    
+    delay_time = []; steps=0
+    
+    if exp_name.lower()=='t1':
+        sequence_time=seqT1(pulser,**specifications)
+    if exp_name.lower()=='snr':
+        sequence_time=seqSNR(pulser,**specifications)
+    if exp_name.lower()=='delay':
+        sequence_time=seqDelay(pulser,**specifications)
+    if exp_name.lower()=='lifetime':
+        sequence_time=seqT1(pulser,**specifications)  #change this sequence
+        
+    for t in sequence_time:
+        delay_time.append(t[1])
+    delay_time = np.array(delay_time)
+
+    for st in sequence_time:
+        steps=st[2]
+        break
+        
+    return delay_time,steps
+
+# measuremet function 
+def measure(pulser,device_name,specifications,samples=1000,averages=5):
+    
+    time_axis,steps=get_time(pulser,exp_name,**specifications)
+    print(f'number of steps : {steps}')
+    
+    numberofpoints=samples*2 
+    
+    pixel=numberofpoints*steps 
+    print(f'Pixel : {pixel}')
+    DAQ_device.reset_device()
+    pulser.reset()
+    print("creating sequence")
+   
+    # Counter
+    CountWidth = nidaqmx.Task()
+    ciChannel = CountWidth.ci_channels.add_ci_count_edges_chan('/Dev1/ctr1',edge=nidaqmx.constants.Edge.RISING, initial_count=0,
+                                                               count_direction=nidaqmx.constants.CountDirection.COUNT_UP) # which specification are we measuring here?
+
+    CountWidth.triggers.pause_trigger.dig_lvl_src='/Dev1/PFI4'
+    CountWidth.triggers.pause_trigger.trig_type=nidaqmx.constants.TriggerType.DIGITAL_LEVEL
+    CountWidth.triggers.pause_trigger.dig_lvl_when=nidaqmx.constants.Level.LOW
+
+
+    #CountWidth.timing.cfg_implicit_timing(sample_mode = nidaqmx.constants.AcquisitionType.FINITE, samps_per_chan=(pixel)*averages)#samps per channel defines the buffer size for the memory
+    CountWidth.timing.cfg_samp_clk_timing(rate=1e8,source='/Dev1/PFI5',active_edge=nidaqmx.constants.Edge.FALLING,
+                                          sample_mode = nidaqmx.constants.AcquisitionType.FINITE, samps_per_chan=(pixel)*averages )
+    cps = []
+    callback=[]  
+   
+    #Pulse streamer gating
+    # Digital output
+    DigChannel = 'Dev1/port0/line7' #connect this to PFI 4 #this is ctr 1 gate
+    DigTask = nidaqmx.Task()
+    DigTask.do_channels.add_do_chan(lines = DigChannel)
+    DigChannel = 'Dev1/port0/line7' #Defining the port for taking the output
+   
+   
+    def readBuffer(task_handle, every_n_samples_event_type, number_of_samples, callback_data):
+        CountWidth.in_stream.read_all_avail_samp = True
+        readPixels=readerWidth.read_many_sample_uint32(highCount, number_of_samples_per_channel=- 1, timeout=10.0)
+        cps.extend(highCount)
+        callback.extend([1])
+        return 0
+
+    buffersamplecount=numberofpoints
+    
+    # Counter read task
+    readerWidth = nidaqmx.stream_readers.CounterReader(CountWidth.in_stream)    
+    highCount = np.zeros(buffersamplecount, dtype = np.uint32)
+    lowCount =  np.zeros(buffersamplecount,dtype = np.uint32)
+
+
+    # Read after filling the buffer with given number of samples
+    CountWidth.register_every_n_samples_acquired_into_buffer_event(buffersamplecount,readBuffer) #after every pixel it will trigger the callback
+
+   
+    # Start tasks (digital output will be triggered by analog output)
+    print("starting DAQ")
+    CountWidth.start()
+    
+    #Adding infinite loop
+    t=0
+    run=0
+    data=[]
+    finaldata=[]
+    print("Preparing Ni Daq for the experiment")
+    print("callback number in beginning:",len(callback))
+
+    i=0
+    for run in trange(averages):
+
+        if exp_name.lower()=='t1':
+            sequence_time=seqT1(pulser,**specifications)
+        if exp_name.lower()=='snr':
+            sequence_time=seqSNR(pulser,**specifications)
+        if exp_name.lower()=='delay':
+            sequence_time=seqDelay(pulser,**specifications)
+        if exp_name.lower()=='lifetime':
+            sequence_time=seqT1(pulser,**specifications)  #change this sequence
+
+        pulser.setTrigger(start=psl.TriggerStart.HARDWARE_RISING,rearm=psl.TriggerRearm.AUTO)
+        seq_num=0
+       
+        for s in sequence_time:
+            t1=len(callback)
+           
+            seq_num=seq_num+1
+            print(seq_num)
+            i+=1
+            pulser.stream(s[0], n_runs=samples)         
+
+            DigTask.write(True)
+            while len(callback)==t1:
+                time.sleep(0.001)         
+            DigTask.write(False)
+         
+        run=run+1
+        print(f"callback number after {run}-th average end: {len(callback)}")
+        
+    print(f'Total Run : {i}')
+    data=signal_counts(cps,pixel,numberofpoints,steps)   
+    
+    CountWidth.close()
+    DigTask.close()    
+
+    print('returning averaged counts and time_axis')
+    return data,time_axis
+
+# Function to Modify the Data
+def signal_counts(pulser,device_name,all_counts,counts_in_one_average,numberofpoints,steps,*args):
+    all_counts=np.array(all_counts)
+    print(f'Total Counts & Counts in one average : {len(all_counts), counts_in_one_average}')
+    no_of_averages=int(len(all_counts)/counts_in_one_average)
+    print("Crosscheck number of averges=",no_of_averages)
+
+    # Changing the cumulative counts to actual counts
+    cumulative_counts = np.reshape(all_counts,(no_of_averages,counts_in_one_average))
+    modified_matrix = np.delete(cumulative_counts, -1, 1)
+    zero_array = np.zeros(no_of_averages, dtype=int)
+    new_matrix = np.hstack((zero_array[:, np.newaxis], modified_matrix))
+    actual_counts = np.subtract(cumulative_counts,new_matrix)
+    averaged_actual_counts = np.mean(actual_counts,axis=0)
+
+    
+    return averaged_actual_counts 

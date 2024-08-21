@@ -1,210 +1,157 @@
-{
- "cells": [
-  {
-   "cell_type": "code",
-   "execution_count": 14,
-   "id": "50df758f-bff7-42c0-99bc-f12acae31718",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "import numpy as np\n",
-    "import pandas as pd\n",
-    "import inspect,dis\n",
-    "import sys\n",
-    "import time\n",
-    "from tqdm import trange\n",
-    "from plotly.subplots import make_subplots\n",
-    "from plotly import graph_objs as go\n",
-    "import scipy\n",
-    "from scipy.optimize import curve_fit\n",
-    "import pprint\n",
-    "import os\n",
-    "import scipy.stats as stats\n",
-    "import tkinter as tk\n",
-    "from tkinter import *\n",
-    "from tkinter.messagebox import askyesno"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 11,
-   "id": "e0b74ad6-85f7-4ce3-be77-a9ad030d7ace",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "# # Tkinter Messagebox\n",
-    "# def tkinter_permission(file_type):\n",
-    "#     root = tk.Tk()\n",
-    "#     root.title('Permission accesss')\n",
-    "#     root.geometry('300x150')\n",
-    "#     root.eval('tk::PlaceWindow . center')\n",
-    "#     def confirmation():\n",
-    "#         globals()['permission'] = askyesno(title = None,message='Confirmation of Overwriting!')\n",
-    "#         if globals()['permission']:\n",
-    "#             top = Toplevel(root)     # using Toplevel\n",
-    "#             top.update_idletasks()\n",
-    "#             screen_width = top.winfo_screenwidth()\n",
-    "#             screen_height = top.winfo_screenheight()\n",
-    "#             size = tuple(int(_) for _ in top.geometry().split('+')[0].split('x'))\n",
-    "#             x = screen_width/2 - size[0]/2\n",
-    "#             y = screen_height/2 - size[1]/2\n",
-    "#             top.geometry(\"+%d+%d\" % (x, y))\n",
-    "\n",
-    "#             top.title(None)\n",
-    "#             Message(top, text=f'{file_type} is going to be overwritten!', padx=100, pady=100).pack()\n",
-    "#             top.after(1500, top.destroy)       \n",
-    "#             root.after(1500, root.destroy)\n",
-    "#         else:\n",
-    "#             root.destroy()\n",
-    "#     root_button = Button(root,text=f'Do you want to overwrite\\n the exiting {file_type}?',command=confirmation)\n",
-    "#     root_button.pack(side = TOP, expand=0.5)\n",
-    "#     root.mainloop()"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 135,
-   "id": "bb46dd05-0fde-4a42-a7b2-7185c36fd230",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "# Replacing mistakes in file naming\n",
-    "def replace_space(name):\n",
-    "    name = name.replace(' ', '_').replace('.','_').replace('__','_').replace('___','_').replace(':','_')\n",
-    "    if name[-1]=='_':  \n",
-    "        name=name[:-1]\n",
-    "    return name\n",
-    "\n",
-    "# Saving file in given directory\n",
-    "def npz_save(directory_name,file_name,**dict_args):\n",
-    "\n",
-    "    if not os.path.exists(directory_name):\n",
-    "        os.makedirs(directory_name)\n",
-    "\n",
-    "    total_path = os.path.join(folder_path, file_name)\n",
-    "    np.savez(total_path,**dict_args)\n",
-    "\n",
-    "    if os.path.exists(total_path)==False:\n",
-    "        raise Exception('Saved file does not exist!\\n')\n",
-    "    elif os.stat(total_path).st_size == False:\n",
-    "        raise Exception('Saved file is empty!\\n')\n",
-    "    else:\n",
-    "        print(f\"saving data_file '{file_name}' is successful!\\n\")\n",
-    "\n",
-    "    return total_path"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 6,
-   "id": "bdb3952b-f684-4872-9cc0-07e510608b87",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "fig_template = go.layout.Template()\n",
-    "fig_template.layout = {\n",
-    "    'template': 'simple_white+presentation',\n",
-    "    'autosize': False,\n",
-    "    'width': 800,\n",
-    "    'height': 600,\n",
-    "    # 'opacity': 0.2,\n",
-    "    'xaxis': {\n",
-    "        'ticks': 'inside',\n",
-    "        'mirror': 'ticks',\n",
-    "        'linewidth': 1.5+0.5,\n",
-    "        'tickwidth': 1.5+0.5,\n",
-    "        'ticklen': 6,\n",
-    "        'showline': True,\n",
-    "        'showgrid': False,\n",
-    "        'zerolinecolor': 'white',\n",
-    "        },\n",
-    "    'yaxis': {\n",
-    "        'ticks': 'inside',\n",
-    "        'mirror': 'ticks',\n",
-    "        'linewidth': 1.5+0.5,\n",
-    "        'tickwidth': 1.5+0.5,\n",
-    "        'ticklen': 6,\n",
-    "        'showline': True,\n",
-    "        'showgrid': False,\n",
-    "        'zerolinecolor': 'white'\n",
-    "        },\n",
-    "    'font':{'family':'mathjax',\n",
-    "            'size': 22,\n",
-    "            }\n",
-    "}"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 137,
-   "id": "4d3972fa-7619-456f-9305-8b2c7d8168b4",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "# Curve_fitting Function\n",
-    "def exponential(x,y0,y_max,tau):\n",
-    "    return y0+y_max*np.exp(-x/tau)\n",
-    "def sigmoid(x,x0):\n",
-    "    return 1/(1+np.exp(-(x-x0)))\n",
-    "def inverse_sigmoid(x,x0):\n",
-    "    return 1/(1+np.exp(+(x-x0)))\n",
-    "\n",
-    "# Function to calculate the Lifetime\n",
-    "def fit_func(x_old,y_old,fit_range=False,func='exp'):\n",
-    "    indices = np.where(y_old!=0)\n",
-    "    yOld = y_old[indices]; xOld = x_old[indices]\n",
-    "    \n",
-    "    if type(fit_range)==np.ndarray:\n",
-    "        range_indicies = np.where(np.logical_and(xOld>=fit_range[0],xOld<=fit_range[1]))\n",
-    "        xOld = xOld[range_indicies]; yOld = yOld[range_indicies]\n",
-    "        \n",
-    "    if func.lower()=='exp':\n",
-    "        coefficient, covariance_matrix = curve_fit(exponential,xOld,yOld,absolute_sigma=False)\n",
-    "        x_new = xOld; y_new = exponential(x_new,*coefficient)\n",
-    "    if func.lower()=='sigmoid':\n",
-    "        coefficient, covariance_matrix = curve_fit(sigmoid,xOld,yOld,absolute_sigma=False)\n",
-    "        x_new = xOld; y_new = exponential(x_new,*coefficient)\n",
-    "    if func.lower()=='inverse_sigmoid':\n",
-    "        coefficient, covariance_matrix = curve_fit(inverse_sigmoid,xOld,yOld,absolute_sigma=False)\n",
-    "        x_new = xOld; y_new = exponential(x_new,*coefficient)\n",
-    "\n",
-    "    error_bars = np.sqrt(np.diag(covariance_matrix))\n",
-    "    condition_number =  np.format_float_scientific(np.linalg.cond(covariance_matrix),precision=2)\n",
-    "\n",
-    "    # Different ways of 'Goodness of Fit' Test\n",
-    "    chi_square_test, p_value = stats.chisquare(yOld, y_new)\n",
-    "    ss_res = np.sum(np.square(yOld-y_new )); ss_total = np.sum(np.square(yOld-np.mean(yOld)))\n",
-    "    r_squared = 1-(ss_res/ss_total)\n",
-    "    mean_squared_error = np.square(np.subtract(y_new,yOld)).mean()\n",
-    "\n",
-    "    print(f'Lifetime in nano_second is : {coefficient[2]}.\\n')\n",
-    "    print(f'Chi_square, p-value, R_squared,MeanSquaredError and Condition Number are : {np.round(chi_square_test,3)}\\t{np.round(p_value,3)}\\\n",
-    "    \\t{np.round(r_squared,3)}\\t{np.round(mean_squared_error,5)}\\t{condition_number}.\\n')\n",
-    "    if p_value<=0.05:\n",
-    "        print('The p_value of fitting is low. Please check the fitting!')\n",
-    "    return x_new,y_new,coefficient,error_bars"
-   ]
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python 3 (ipykernel)",
-   "language": "python",
-   "name": "python3"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.11.7"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
+import numpy as np
+from plotly import graph_objs as go
+import scipy
+from scipy.optimize import curve_fit
+import os
+import scipy.stats as stats
+import tkinter as tk
+from tkinter import *
+from tkinter.messagebox import askyesno
+
+# # Tkinter Messagebox
+# def tkinter_permission(file_type):
+#     root = tk.Tk()
+#     root.title('Permission accesss')
+#     root.geometry('300x150')
+#     root.eval('tk::PlaceWindow . center')
+#     def confirmation():
+#         globals()['permission'] = askyesno(title = None,message='Confirmation of Overwriting!')
+#         if globals()['permission']:
+#             top = Toplevel(root)     # using Toplevel
+#             top.update_idletasks()
+#             screen_width = top.winfo_screenwidth()
+#             screen_height = top.winfo_screenheight()
+#             size = tuple(int(_) for _ in top.geometry().split('+')[0].split('x'))
+#             x = screen_width/2 - size[0]/2
+#             y = screen_height/2 - size[1]/2
+#             top.geometry("+%d+%d" % (x, y))
+
+#             top.title(None)
+#             Message(top, text=f'{file_type} is going to be overwritten!', padx=100, pady=100).pack()
+#             top.after(1500, top.destroy)       
+#             root.after(1500, root.destroy)
+#         else:
+#             root.destroy()
+#     root_button = Button(root,text=f'Do you want to overwrite\n the exiting {file_type}?',command=confirmation)
+#     root_button.pack(side = TOP, expand=0.5)
+#     root.mainloop()
+
+
+
+
+# Replacing mistakes in file naming
+def replace_space(name):
+    name = name.replace(' ', '_').replace('.','_').replace('__','_').replace('___','_').replace(':','_')
+    if name[-1]=='_':  
+        name=name[:-1]
+    return name
+
+# Saving file in given directory
+def npz_save(folder_path,file_name,**dict_args):
+
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+    total_path = os.path.join(folder_path, file_name)
+    np.savez(total_path,**dict_args)
+
+    if os.path.exists(total_path)==False:
+        raise Exception('Saved file does not exist!\n')
+    elif os.stat(total_path).st_size == False:
+        raise Exception('Saved file is empty!\n')
+    else:
+        print(f"saving data_file '{file_name}' is successful!\n")
+
+    return total_path
+
+# Curve_fitting Function
+def exponential(x,y0,y_max,tau):
+    return y0+y_max*np.exp(-x/tau)
+def sigmoid(x,x0):
+    return 1/(1+np.exp(-(x-x0)))
+def inverse_sigmoid(x,x0):
+    return 1/(1+np.exp(+(x-x0)))
+
+# Function to calculate the Lifetime
+def fit_func(x_old,y_old,fit_range=False,func='exp'):
+    indices = np.where(y_old!=0)
+    yOld = y_old[indices]; xOld = x_old[indices]
+    
+    if type(fit_range)==np.ndarray:
+        range_indicies = np.where(np.logical_and(xOld>=fit_range[0],xOld<=fit_range[1]))
+        xOld = xOld[range_indicies]; yOld = yOld[range_indicies]
+        
+    if func.lower()=='exp':
+        coefficient, covariance_matrix = curve_fit(exponential,xOld,yOld,absolute_sigma=False)
+        x_new = xOld; y_new = exponential(x_new,*coefficient)
+    if func.lower()=='sigmoid':
+        coefficient, covariance_matrix = curve_fit(sigmoid,xOld,yOld,absolute_sigma=False)
+        x_new = xOld; y_new = exponential(x_new,*coefficient)
+    if func.lower()=='inverse_sigmoid':
+        coefficient, covariance_matrix = curve_fit(inverse_sigmoid,xOld,yOld,absolute_sigma=False)
+        x_new = xOld; y_new = exponential(x_new,*coefficient)
+
+    error_bars = np.sqrt(np.diag(covariance_matrix))
+    condition_number =  np.format_float_scientific(np.linalg.cond(covariance_matrix),precision=2)
+
+    # Different ways of 'Goodness of Fit' Test
+    chi_square_test, p_value = stats.chisquare(yOld, y_new)
+    ss_res = np.sum(np.square(yOld-y_new )); ss_total = np.sum(np.square(yOld-np.mean(yOld)))
+    r_squared = 1-(ss_res/ss_total)
+    mean_squared_error = np.square(np.subtract(y_new,yOld)).mean()
+
+    print(f'Lifetime in nano_second is : {coefficient[2]}.\n')
+    print(f'Chi_square, p-value, R_squared,MeanSquaredError and Condition Number are : {np.round(chi_square_test,3)}\t{np.round(p_value,3)}\
+    \t{np.round(r_squared,3)}\t{np.round(mean_squared_error,5)}\t{condition_number}.\n')
+    if p_value<=0.05:
+        print('The p_value of fitting is low. Please check the fitting!')
+    return x_new,y_new,coefficient,error_bars
+
+
+
+
+
+#fig template 
+fig_template = go.layout.Template()
+fig_template.layout = {
+    'template': 'simple_white+presentation',
+    'autosize': False,
+    'width': 800,
+    'height': 600,
+    # 'opacity': 0.2,
+    'xaxis': {
+        'ticks': 'inside',
+        'mirror': 'ticks',
+        'linewidth': 1.5+0.5,
+        'tickwidth': 1.5+0.5,
+        'ticklen': 6,
+        'showline': True,
+        'showgrid': False,
+        'zerolinecolor': 'white',
+        },
+    'yaxis': {
+        'ticks': 'inside',
+        'mirror': 'ticks',
+        'linewidth': 1.5+0.5,
+        'tickwidth': 1.5+0.5,
+        'ticklen': 6,
+        'showline': True,
+        'showgrid': False,
+        'zerolinecolor': 'white'
+        },
+    'font':{'family':'mathjax',
+            'size': 22,
+            }
 }
+
+def simple_plot(x,y,x_name,y_name):
+    
+    fig = go.Figure()
+    fig.add_scatter(x=x,y=y,mode='markers')
+    
+    fig.update_layout(template = fig_template,width=800,height=600)
+    fig.update_xaxes(title_text = x_name)
+    fig.update_yaxes(title_text = y_name )
+
+    fig.show() 
+    return fig.data[0]
