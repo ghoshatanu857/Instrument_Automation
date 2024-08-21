@@ -37,8 +37,6 @@ from tkinter.messagebox import askyesno
 #     root.mainloop()
 
 
-
-
 # Replacing mistakes in file naming
 def replace_space(name):
     name = name.replace(' ', '_').replace('.','_').replace('__','_').replace('___','_').replace(':','_')

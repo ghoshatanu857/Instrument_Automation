@@ -22,8 +22,7 @@ def seqDelay(pulser,laserNum=1,gateStart=5,source=7,rising_delay=2,gatelen = 6, 
     totaltime= 2*delay_pad + laserontime +2*rising_delay
     # steps=int((totaltime-gatelen-2*rising_delay)/delay_shift)
     steps=int((totaltime-2*gatelen-2*rising_delay)/delay_shift)
-    
-        
+            
     # i=0
     for i in range(steps):
     # while i<steps:
