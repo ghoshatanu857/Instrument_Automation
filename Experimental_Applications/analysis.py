@@ -142,14 +142,15 @@ fig_template.layout = {
             }
 }
 
-def simple_plot(x,y,x_name,y_name):
+def simple_plot(x,y,x_name,y_name,title):
     
     fig = go.Figure()
     fig.add_scatter(x=x,y=y,mode='markers')
     
-    fig.update_layout(template = fig_template,width=800,height=600)
-    fig.update_xaxes(title_text = x_name)
-    fig.update_yaxes(title_text = y_name )
+    fig.update_layout(template = fig_template,width=800,height=600,
+                     title=title,
+                      xaxis_title=x_name,yaxis_title=y_name,
+                     )
 
     fig.show() 
     return fig.data[0]
