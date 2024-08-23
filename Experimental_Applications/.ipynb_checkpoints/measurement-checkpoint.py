@@ -59,7 +59,7 @@ def seqDelay(pulser,laserNum=1,gateStart=5,source=7,rising_delay=2,gatelen = 6, 
                (int(totaltime-2*rising_delay-2*gatelen-i*delay_shift-gatesourcedelay), 0),
            ],
         )
-        yield seq,time,steps
+        yield seq,[time,steps]
         # i=i+1
 
 
@@ -121,7 +121,7 @@ def seqSNR(pulser,laserNum=1,gateStart=5,source=7,rising_delay = 50,gatelen = 50
 
            ],
         )
-        yield seq,time,steps
+        yield seq,[time,steps]
 
 # T1 Measurement Sequence
 def seqT1(pulser,laserNum=1,gateStart=5,source=7,rising_delay = 100,gatelen = 2e3, laserontime = 20e3,delay_pad = 100,delay_shift = 100e3,gatesourcedelay = 5,evolution_time = 5e6):  
@@ -182,12 +182,10 @@ def seqT1(pulser,laserNum=1,gateStart=5,source=7,rising_delay = 100,gatelen = 2e
 
            ],
         )
-        yield seq,time,steps
+        yield seq,[time,steps]
 
 # getting time axis 
 def get_time(pulser,exp_name,specifications): 
-    
-    delay_time = []; steps=0
     
     if exp_name.lower()=='t1':
         sequence_time=seqT1(pulser,**specifications)
@@ -198,20 +196,20 @@ def get_time(pulser,exp_name,specifications):
     if exp_name.lower()=='lifetime':
         sequence_time=seqT1(pulser,**specifications)  #change this sequence
         
+        
+    delay_time = []; steps=0
     for t in sequence_time:
-        delay_time.append(t[1])
+        delay_time.append(t[1][0])
+        steps=t[1][1]
     delay_time = np.array(delay_time)
 
-    for st in sequence_time:
-        steps=st[2]
-        break
-        
     return delay_time,steps
 
 # measuremet function 
-def measure(pulser,device_name,specifications,samples=1000,averages=5):
+def measure(pulser,DAQ_device,device_name,specifications,exp_name = 't1',samples=1000,averages=5):
+    # print(specificatons)
     
-    time_axis,steps=get_time(pulser,exp_name,**specifications)
+    time_axis,steps=get_time(pulser,exp_name,specifications)
     print(f'number of steps : {steps}')
     
     numberofpoints=samples*2 
@@ -318,7 +316,7 @@ def measure(pulser,device_name,specifications,samples=1000,averages=5):
     return data,time_axis
 
 # Function to Modify the Data
-def signal_counts(pulser,device_name,all_counts,counts_in_one_average,numberofpoints,steps,*args):
+def signal_counts(all_counts,counts_in_one_average,numberofpoints,steps,*args):
     all_counts=np.array(all_counts)
     print(f'Total Counts & Counts in one average : {len(all_counts), counts_in_one_average}')
     no_of_averages=int(len(all_counts)/counts_in_one_average)

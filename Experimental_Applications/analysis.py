@@ -1,4 +1,5 @@
 import numpy as np
+import time
 from plotly import graph_objs as go
 import scipy
 from scipy.optimize import curve_fit
@@ -71,7 +72,7 @@ def inverse_sigmoid(x,x0):
     return 1/(1+np.exp(+(x-x0)))
 
 # Function to calculate the Lifetime
-def fit_func(x_old,y_old,fit_range=False,func='exp'):
+def fit_func(x_old,y_old,fit_range=False,func='exp',guess_params=np.array([0.7,0.9,0.5e6])):
     indices = np.where(y_old!=0)
     yOld = y_old[indices]; xOld = x_old[indices]
     
@@ -80,29 +81,29 @@ def fit_func(x_old,y_old,fit_range=False,func='exp'):
         xOld = xOld[range_indicies]; yOld = yOld[range_indicies]
         
     if func.lower()=='exp':
-        coefficient, covariance_matrix = curve_fit(exponential,xOld,yOld,absolute_sigma=False)
+        coefficient, covariance_matrix = curve_fit(exponential,xOld,yOld,p0=guess_params,absolute_sigma=False)
         x_new = xOld; y_new = exponential(x_new,*coefficient)
     if func.lower()=='sigmoid':
-        coefficient, covariance_matrix = curve_fit(sigmoid,xOld,yOld,absolute_sigma=False)
+        coefficient, covariance_matrix = curve_fit(sigmoid,xOld,yOld,p0=guess_params,absolute_sigma=False)
         x_new = xOld; y_new = exponential(x_new,*coefficient)
     if func.lower()=='inverse_sigmoid':
-        coefficient, covariance_matrix = curve_fit(inverse_sigmoid,xOld,yOld,absolute_sigma=False)
+        coefficient, covariance_matrix = curve_fit(inverse_sigmoid,xOld,yOld,p0=guess_params,absolute_sigma=False)
         x_new = xOld; y_new = exponential(x_new,*coefficient)
 
     error_bars = np.sqrt(np.diag(covariance_matrix))
     condition_number =  np.format_float_scientific(np.linalg.cond(covariance_matrix),precision=2)
 
-    # Different ways of 'Goodness of Fit' Test
-    chi_square_test, p_value = stats.chisquare(yOld, y_new)
-    ss_res = np.sum(np.square(yOld-y_new )); ss_total = np.sum(np.square(yOld-np.mean(yOld)))
-    r_squared = 1-(ss_res/ss_total)
-    mean_squared_error = np.square(np.subtract(y_new,yOld)).mean()
+#     # Different ways of 'Goodness of Fit' Test
+#     chi_square_test, p_value = stats.chisquare(yOld, y_new)
+#     ss_res = np.sum(np.square(yOld-y_new )); ss_total = np.sum(np.square(yOld-np.mean(yOld)))
+#     r_squared = 1-(ss_res/ss_total)
+#     mean_squared_error = np.square(np.subtract(y_new,yOld)).mean()
 
     print(f'Lifetime in nano_second is : {coefficient[2]}.\n')
-    print(f'Chi_square, p-value, R_squared,MeanSquaredError and Condition Number are : {np.round(chi_square_test,3)}\t{np.round(p_value,3)}\
-    \t{np.round(r_squared,3)}\t{np.round(mean_squared_error,5)}\t{condition_number}.\n')
-    if p_value<=0.05:
-        print('The p_value of fitting is low. Please check the fitting!')
+#     print(f'Chi_square, p-value, R_squared,MeanSquaredError and Condition Number are : {np.round(chi_square_test,3)}\t{np.round(p_value,3)}\
+#     \t{np.round(r_squared,3)}\t{np.round(mean_squared_error,5)}\t{condition_number}.\n')
+#     if p_value<=0.05:
+#         print('The p_value of fitting is low. Please check the fitting!')
     return x_new,y_new,coefficient,error_bars
 
 
@@ -142,15 +143,27 @@ fig_template.layout = {
             }
 }
 
-def simple_plot(x,y,x_name,y_name,title):
+date = time.ctime()[4:10].replace(' ','_')
+def simple_plot(x,y,show,x_name = "Time (&mu;s)",y_name = "Counts (T<sub>1</sub>)",mode='markers',title=date):
     
     fig = go.Figure()
-    fig.add_scatter(x=x,y=y,mode='markers')
+    fig.add_scatter(x=x,y=y,mode=mode)
     
-    fig.update_layout(template = fig_template,width=800,height=600,
-                     title=title,
-                      xaxis_title=x_name,yaxis_title=y_name,
-                     )
-
-    fig.show() 
+    if show==True:
+        fig.update_layout(template = fig_template,width=800,height=600,
+                         title=title,
+                          xaxis_title=x_name,yaxis_title=y_name,
+                         ) 
+        fig.show()
     return fig.data[0]
+
+def add_figures(figs,show,x_name = "Time (&mu;s)",y_name = "Counts (T<sub>1</sub>)",mode='markers',title=date):
+    fig=go.Figure()
+    for i in figs:
+        fig.add_traces(i)
+    if show==True:
+        fig.update_layout(template = fig_template,width=800,height=600,
+                         title=title,
+                          xaxis_title=x_name,yaxis_title=y_name,
+                         ) 
+        fig.show()
