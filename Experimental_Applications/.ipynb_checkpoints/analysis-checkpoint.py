@@ -99,7 +99,7 @@ def fit_func(x_old,y_old,fit_range=False,func='exp',guess_params=np.array([0.7,0
 #     r_squared = 1-(ss_res/ss_total)
 #     mean_squared_error = np.square(np.subtract(y_new,yOld)).mean()
 
-    print(f'Lifetime in nano_second is : {coefficient[2]}.\n')
+    print(f'Lifetime in nano_second is : {np.round(coefficient[2],1)} \u00B1 {np.round(error_bars[2],1)}\n')
 #     print(f'Chi_square, p-value, R_squared,MeanSquaredError and Condition Number are : {np.round(chi_square_test,3)}\t{np.round(p_value,3)}\
 #     \t{np.round(r_squared,3)}\t{np.round(mean_squared_error,5)}\t{condition_number}.\n')
 #     if p_value<=0.05:
