@@ -144,35 +144,20 @@ fig_template.layout = {
 }
 
 date = time.ctime()[4:10].replace(' ','_')
-def simple_plot(x,y,show,x_name = "Time (&mu;s)",y_name = "Counts (T<sub>1</sub>)",mode='markers',title=date):
+def simple_plot(x,y,show,curve_name,x_name = "Time (&mu;s)",y_name = "Counts (T<sub>1</sub>)",mode='markers',title=date,width=800,height=600):
     
     fig = go.Figure()
-    fig.add_scatter(x=x,y=y,mode=mode)
+    fig.add_scatter(x=x,y=y,mode=mode,name=curve_name)
     
     if show==True:
-        fig.update_layout(template = fig_template,width=800,height=600,
+        fig.update_layout(template = fig_template,width=width,height=height,
                          title=title,
                           xaxis_title=x_name,yaxis_title=y_name,
                          ) 
         fig.show()
     return fig.data[0]
 
-def heatmap_plot(x,y,z,show,x_name = "x_range (m)",y_name = "y_range (m)",mode='markers',title='|E<sub>mag</sub>|'):
-    
-    fig = go.Figure()
-    fig.add_trace(go.Contour(x=x,y=y,z=z,contours_coloring='heatmap',
-                                connectgaps = False,line_smoothing=1,colorbar=dict(title='',titleside='right'),colorscale=None))
-    fig.update_traces(line_width=0)
-    
-    if show==True:
-        fig.update_layout(template = fig_template,width=700,height=600,
-                         title=title,
-                          xaxis_title=x_name,yaxis_title=y_name,
-                         ) 
-        fig.show()
-    return fig.data[0]
-
-def add_figures(figs,show,x_name = "Time (&mu;s)",y_name = "Counts (T<sub>1</sub>)",mode='markers',title=date):
+def add_figures(figs,show,x_name = "Time (&mu;s)",y_name = "Counts (T<sub>1</sub>)",title=date):
     fig=go.Figure()
     for i in figs:
         fig.add_traces(i)
