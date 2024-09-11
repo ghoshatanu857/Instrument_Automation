@@ -157,7 +157,7 @@ def simple_plot(x,y,show,curve_name,x_name = "Time (&mu;s)",y_name = "Counts (T<
         fig.show()
     return fig.data[0]
 
-def add_figures(figs,show,x_name = "Time (&mu;s)",y_name = "Counts (T<sub>1</sub>)",title=date):
+def add_figures(figs,show,x_name = "Time (&mu;s)",y_name = "Counts (T<sub>1</sub>)",title=date,save=False,path='dummy'):
     fig=go.Figure()
     for i in figs:
         fig.add_traces(i)
@@ -167,3 +167,5 @@ def add_figures(figs,show,x_name = "Time (&mu;s)",y_name = "Counts (T<sub>1</sub
                           xaxis_title=x_name,yaxis_title=y_name,
                          ) 
         fig.show()
+    if save==True:
+        fig.write_image(path)
