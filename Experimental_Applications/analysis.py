@@ -144,10 +144,10 @@ fig_template.layout = {
 }
 
 date = time.ctime()[4:10].replace(' ','_')
-def simple_plot(x,y,show,curve_name,x_name = "Time (&mu;s)",y_name = "Counts (T<sub>1</sub>)",mode='markers',title=date,width=800,height=600):
+def simple_plot(x,y,show,curve_name,x_name = "Time (&mu;s)",y_name = "Counts (T<sub>1</sub>)",mode='markers',title=date,showlegend=True,width=800,height=600):
     
     fig = go.Figure()
-    fig.add_scatter(x=x,y=y,mode=mode,name=curve_name)
+    fig.add_scatter(x=x,y=y,mode=mode,name=curve_name,showlegend=showlegend)
     
     if show==True:
         fig.update_layout(template = fig_template,width=width,height=height,
