@@ -9,7 +9,54 @@ import nidaqmx
 import nidaqmx.stream_readers
 from pulsestreamer import PulseStreamer,findPulseStreamers,OutputState,TriggerStart,Sequence,TriggerRearm
 
+# Lifetime Measurement Sequence
+def seqLifetime(pulser,laserNum=1,gateStart=5,source=7,rising_delay=2,gatelen = 6, laserontime = 31,laserofftime = 1e3,delay_pad = 2,delay_shift = 2,gatesourcedelay=2):
+    
+    seq = pulser.createSequence()
+   
+    laserNum = 1
+    gateStart = 5
+    source=7
+    
+    totaltime= delay_pad+laserontime+rising_delay+laserofftime+delay_pad
+    steps=int((laserofftime-2*rising_delay-2*gatelen)/delay_shift)
+            
+    for i in range(steps):
+        
+        seq.setDigital(
+           laserNum,
+           [
+               (int(delay_pad), 0),
+               (int(laserontime),1),
+               (int(rising_delay+laseroffitme+delay_pad),0),
+           ],
+        )     
+        seq.setDigital(
+           gateStart,
+           [
+               (int(delay_pad+laserontime+rising_delay),0),
+               (int(gatelen),1),
+               (int(i*delay_shift+rising_delay), 0),
+               (int(gatelen), 1),
+               (int(laserofftime-2*rising_delay-2*gatelen-i*delay_shift), 0),
+           ],
+        )
+        time = int(rising_delay+gatelen+rising_delay+i*delay_shift)
+        seq.setDigital(
+           source,
+           [
+               (int(delay_pad+laserontime+rising_delay),0),
+               (int(gatelen-gatesourcedelay),1),
+               (int(i*delay_shift+rising_delay+gatesourcedelay), 0),
+               (int(gatelen-gatesourcedelay), 1),
+               (int(totaltime-2*rising_delay-2*gatelen-i*delay_shift+2*gatesourcedelay), 0),
+           ],
+        )
+        yield seq,[time,steps]
+        # i=i+1
 
+
+        
 # Delay Measurement Sequence
 def seqDelay(pulser,laserNum=1,gateStart=5,source=7,rising_delay=2,gatelen = 6, laserontime = 31,delay_pad = 2,delay_shift = 2,gatesourcedelay=2):
     
@@ -194,7 +241,7 @@ def get_time(pulser,exp_name,specifications):
     if exp_name.lower()=='delay':
         sequence_time=seqDelay(pulser,**specifications)
     if exp_name.lower()=='lifetime':
-        sequence_time=seqT1(pulser,**specifications)  #change this sequence
+        sequence_time=seqLifetime(pulser,**specifications)  #change this sequence
         
         
     delay_time = []; steps=0
@@ -285,7 +332,7 @@ def measure(pulser,DAQ_device,device_name,specifications,exp_name = 't1',samples
         if exp_name.lower()=='delay':
             sequence_time=seqDelay(pulser,**specifications)
         if exp_name.lower()=='lifetime':
-            sequence_time=seqT1(pulser,**specifications)  #change this sequence
+            sequence_time=seqLifetime(pulser,**specifications)  #change this sequence
 
         pulser.setTrigger(start=psl.TriggerStart.HARDWARE_RISING,rearm=psl.TriggerRearm.AUTO)
         seq_num=0
@@ -332,3 +379,20 @@ def signal_counts(all_counts,counts_in_one_average,numberofpoints,steps,*args):
 
     
     return averaged_actual_counts 
+
+def signal(data,samples):
+    data_shape = data.shape[0]
+    steps=int(data_shape/(2*samples))
+    # print(data_shape,steps)
+    
+    # Separating Reference and Signal and averaging over Samples
+    reference_samples = np.mean(np.reshape(data[::2],(steps,samples)),axis=1)
+    signal_samples = np.mean(np.reshape(data[1::2],(steps,samples)),axis=1)
+    signal_photon = signal_samples/reference_samples
+    return signal_photon,reference_samples,signal_samples
+
+def data_to_time_signal(data,samples):
+    # print(data['avg_data'].shape,data['time_axis'].shape)
+    time = data['time_axis'][1:]
+    signal_photon,reference_samples,signal_samples = signal(data['avg_data'],samples)[1:]
+    return time,signal_photon,reference_samples,signal_samples
