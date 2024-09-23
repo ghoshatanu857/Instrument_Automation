@@ -522,21 +522,29 @@ def signal_counts(all_counts,counts_in_one_average,numberofpoints,steps,*args):
 
     
     return averaged_actual_counts 
-def signal(data,samples):
+def signal(data,samples,first='reference'):
     data_shape = data.shape[0]
     steps=int(data_shape/(2*samples))
     # print(data_shape,steps)
-    
-    # Separating Reference and Signal and averaging over Samples
-    reference_samples = np.mean(np.reshape(data[::2],(steps,samples)),axis=1)
-    signal_samples = np.mean(np.reshape(data[1::2],(steps,samples)),axis=1)
+
+    if first.lower()=='reference':
+        # Separating Reference and Signal and averaging over Samples
+        reference_samples = np.mean(np.reshape(data[::2],(steps,samples)),axis=1)
+        signal_samples = np.mean(np.reshape(data[1::2],(steps,samples)),axis=1)
+
+    if first.lower()=='signal':
+        # Separating Reference and Signal and averaging over Samples
+        signal_samples = np.mean(np.reshape(data[::2],(steps,samples)),axis=1)
+        reference_samples = np.mean(np.reshape(data[1::2],(steps,samples)),axis=1)
+        
     signal_photon = signal_samples/reference_samples
+        
     return signal_photon,reference_samples,signal_samples
 
-def data_to_time_signal(data,samples):
+def data_to_time_signal(data,samples,first='reference'):
     # print(data['avg_data'].shape,data['time_axis'].shape)
     time = data['time_axis']
-    signal_photon,reference_samples,signal_samples = signal(data['avg_data'],samples)
+    signal_photon,reference_samples,signal_samples = signal(data['avg_data'],samples,first=first)
     return time,signal_photon,reference_samples,signal_samples
 
 
