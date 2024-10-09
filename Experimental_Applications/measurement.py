@@ -375,7 +375,7 @@ def seqT1_new(pulser,laserNum=1,gateStart=5,source=7,rising_delay = 100,gatelen 
         yield seq,[time,steps]
 
 # T1 Measurement Sequence
-def seqT1_simple(pulser,laserNum=1,gateStart=5,source=7,rising_delay = 100,gatelen = 2e3, laserontime = 20e3,delay_pad = 100,delay_shift = 100e3,gatesourcedelay = 5,evolution_time = 5e6):  
+def seqT1_simple(pulser,laserNum=1,gateStart=5,source=7,rising_delay = 100,gatelen = 2e3, laserontime = 20e3,delay_pad = 100,delay_shift = 100e3,gatesourcedelay = 5,evolution_time = 5e6,first_time = 1e3):  
     
     seq = pulser.createSequence()
    
@@ -390,7 +390,7 @@ def seqT1_simple(pulser,laserNum=1,gateStart=5,source=7,rising_delay = 100,gatel
     for i in range(steps):
         
         if i==1:
-            mod_delay_shift = 1e3
+            mod_delay_shift = first_time
         else:
             mod_delay_shift=delay_shift
         if i>=2:
