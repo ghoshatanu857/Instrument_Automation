@@ -384,29 +384,39 @@ def seqT1_simple(pulser,laserNum=1,gateStart=5,source=7,rising_delay = 100,gatel
     source=7
     
     total_time= delay_pad+rising_delay+laserontime+rising_delay+evolution_time+laserontime+rising_delay+delay_pad
-    steps=int(evolution_time/delay_shift)
-    
-    
+    steps=int(evolution_time/delay_shift) + 1
+
+    j=0
     for i in range(steps):
-        laser_offtime = total_time - delay_pad -3*rising_delay-3*laserontime-i*delay_shift
+        
+        if i==1:
+            mod_delay_shift = 1e3
+        else:
+            mod_delay_shift=delay_shift
+        if i>=2:
+            j=i
+        else:
+            j=i+1
+        
+        # laser_offtime = total_time - delay_pad -3*rising_delay-3*laserontime-i*delay_shift
         seq.setDigital(
            laserNum,
            [
                (int(delay_pad+rising_delay), 0),
                (int(laserontime), 1),
-               (int(rising_delay+i*delay_shift),0),
+               (int(rising_delay+(j-1)*mod_delay_shift),0),
                (int(laserontime), 1),
                (int(delay_pad+rising_delay), 0),
            ],
         )
-        
-        gate_offtime = total_time - delay_pad -3*rising_delay-2*laserontime-gatelen-i*delay_shift
+            
+        gate_offtime = total_time - delay_pad -3*rising_delay-2*laserontime-gatelen-(j-1)*mod_delay_shift
         seq.setDigital(
            gateStart,
             [
                (int(delay_pad+rising_delay), 0),
                (int(laserontime), 0),
-               (int(rising_delay+i*delay_shift), 0),
+               (int(rising_delay+(j-1)*mod_delay_shift), 0),
                (int(gatelen), 1),
                (int(laserontime-2*gatelen),0),
                (int(gatelen), 1),
@@ -414,14 +424,14 @@ def seqT1_simple(pulser,laserNum=1,gateStart=5,source=7,rising_delay = 100,gatel
            ],
         )
         
-        time = int(rising_delay+i*delay_shift)
+        time = int(rising_delay+(j-1)*mod_delay_shift)
         
         seq.setDigital(
            source,
             [
                (int(delay_pad+rising_delay), 0),
                (int(laserontime), 0),
-               (int(rising_delay+i*delay_shift), 0),
+               (int(rising_delay+(j-1)*mod_delay_shift), 0),
                (int(gatelen-gatesourcedelay), 1),
                (int(laserontime-2*gatelen+2*gatesourcedelay),0),
                (int(gatelen-gatesourcedelay), 1),
