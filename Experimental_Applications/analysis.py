@@ -66,6 +66,8 @@ def npz_save(folder_path,file_name,**dict_args):
 # Curve_fitting Function
 def exponential(x,y0,y_max,tau):
     return y0+y_max*np.exp(-x/tau)
+def bi_exponential(x,y0,y_max,tau,y_max1,tau1):
+    return y0+y_max*np.exp(-x/tau)+y_max1*np.exp(-x/tau1)
 def sigmoid(x,x0):
     return 1/(1+np.exp(-(x-x0)))
 def inverse_sigmoid(x,x0):
@@ -83,6 +85,9 @@ def fit_func(x_old,y_old,fit_range=False,func='exp',guess_params=np.array([0.7,0
     if func.lower()=='exp':
         coefficient, covariance_matrix = curve_fit(exponential,xOld,yOld,p0=guess_params,absolute_sigma=False)
         x_new = xOld; y_new = exponential(x_new,*coefficient)
+    if func.lower()=='bi_exp':
+        coefficient, covariance_matrix = curve_fit(bi_exponential,xOld,yOld,p0=guess_params,absolute_sigma=False)
+        x_new = xOld; y_new = bi_exponential(x_new,*coefficient)
     if func.lower()=='sigmoid':
         coefficient, covariance_matrix = curve_fit(sigmoid,xOld,yOld,p0=guess_params,absolute_sigma=False)
         x_new = xOld; y_new = exponential(x_new,*coefficient)
@@ -98,7 +103,7 @@ def fit_func(x_old,y_old,fit_range=False,func='exp',guess_params=np.array([0.7,0
 #     ss_res = np.sum(np.square(yOld-y_new )); ss_total = np.sum(np.square(yOld-np.mean(yOld)))
 #     r_squared = 1-(ss_res/ss_total)
 #     mean_squared_error = np.square(np.subtract(y_new,yOld)).mean()
-
+    print(f'co-efficients are : {coefficient} \nwith corresponding errorbars: {error_bars}\n')
     print(f'Lifetime in nano_second is : {np.round(coefficient[2],1)} \u00B1 {np.round(error_bars[2],1)}\n')
 #     print(f'Chi_square, p-value, R_squared,MeanSquaredError and Condition Number are : {np.round(chi_square_test,3)}\t{np.round(p_value,3)}\
 #     \t{np.round(r_squared,3)}\t{np.round(mean_squared_error,5)}\t{condition_number}.\n')
