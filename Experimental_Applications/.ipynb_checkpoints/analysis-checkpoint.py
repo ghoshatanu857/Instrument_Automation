@@ -45,24 +45,6 @@ def replace_space(name):
         name=name[:-1]
     return name
 
-# Saving file in given directory
-def npz_save(folder_path,file_name,**dict_args):
-
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-
-    total_path = os.path.join(folder_path, file_name)
-    np.savez(total_path,**dict_args)
-
-    if os.path.exists(total_path)==False:
-        raise Exception('Saved file does not exist!\n')
-    elif os.stat(total_path).st_size == False:
-        raise Exception('Saved file is empty!\n')
-    else:
-        print(f"saving data_file '{file_name}' is successful!\n")
-
-    return total_path
-
 # Curve_fitting Function
 def exponential(x,y0,y_max,tau):
     return y0+y_max*np.exp(-x/tau)
