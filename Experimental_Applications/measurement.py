@@ -2,6 +2,7 @@
 # !pip install nidaqmx
 import numpy as np
 import time
+import os
 from tqdm import trange
 import pulsestreamer
 import pulsestreamer as psl
@@ -9,6 +10,22 @@ import nidaqmx
 import nidaqmx.stream_readers
 from pulsestreamer import PulseStreamer,findPulseStreamers,OutputState,TriggerStart,Sequence,TriggerRearm
 
+# loading the local Pulse Streamer and NIDAQmx
+def load_pulser_nidaq(IPaddress,DAQ_device): 
+    try:
+        pulser = PulseStreamer(IPaddress)
+    except Exception as e:
+        print(f"Pulse Streamer is not connected.")
+        print(f"Check two green lights of Pulse Streamer and Change IPv4 address in Ethernet from PC setting.")
+
+    
+    try:
+        device_name = DAQ_device.terminals[0:1][0][1:5]
+    except Exception as e:
+        print(f"An error occurred while creating PulseStreamer: {e}")
+    print(f'connected NIDAQmx device name : {device_name}')
+
+    return pulser, device_name
 
 # Specifing the experiment 
 def give_sequence_time(pulser,exp_name,specifications):
@@ -554,26 +571,26 @@ def measure(pulser,DAQ_device,device_name,specifications,exp_name = 't1',samples
    
     # Counter
     CountWidth = nidaqmx.Task()
-    ciChannel = CountWidth.ci_channels.add_ci_count_edges_chan('/Dev1/ctr1',edge=nidaqmx.constants.Edge.RISING, initial_count=0,
+    ciChannel = CountWidth.ci_channels.add_ci_count_edges_chan(f'/{device_name}/ctr1',edge=nidaqmx.constants.Edge.RISING, initial_count=0,
                                                                count_direction=nidaqmx.constants.CountDirection.COUNT_UP) # which specification are we measuring here?
 
-    CountWidth.triggers.pause_trigger.dig_lvl_src='/Dev1/PFI4'
+    CountWidth.triggers.pause_trigger.dig_lvl_src=f'/{device_name}/PFI4'
     CountWidth.triggers.pause_trigger.trig_type=nidaqmx.constants.TriggerType.DIGITAL_LEVEL
     CountWidth.triggers.pause_trigger.dig_lvl_when=nidaqmx.constants.Level.LOW
 
 
     #CountWidth.timing.cfg_implicit_timing(sample_mode = nidaqmx.constants.AcquisitionType.FINITE, samps_per_chan=(pixel)*averages)#samps per channel defines the buffer size for the memory
-    CountWidth.timing.cfg_samp_clk_timing(rate=1e8,source='/Dev1/PFI5',active_edge=nidaqmx.constants.Edge.FALLING,
+    CountWidth.timing.cfg_samp_clk_timing(rate=1e8,source=f'/{device_name}/PFI5',active_edge=nidaqmx.constants.Edge.FALLING,
                                           sample_mode = nidaqmx.constants.AcquisitionType.FINITE, samps_per_chan=(pixel)*averages )
     cps = []
     callback=[]  
    
     #Pulse streamer gating
     # Digital output
-    DigChannel = 'Dev1/port0/line7' #connect this to PFI 4 #this is ctr 1 gate
+    DigChannel = f'{device_name}/port0/line7' #connect this to PFI 4 #this is ctr 1 gate
     DigTask = nidaqmx.Task()
     DigTask.do_channels.add_do_chan(lines = DigChannel)
-    DigChannel = 'Dev1/port0/line7' #Defining the port for taking the output
+    DigChannel = f'{device_name}/port0/line7' #Defining the port for taking the output
    
    
     def readBuffer(task_handle, every_n_samples_event_type, number_of_samples, callback_data):
@@ -604,7 +621,7 @@ def measure(pulser,DAQ_device,device_name,specifications,exp_name = 't1',samples
     run=0
     data=[]
     finaldata=[]
-    print("Preparing Ni Daq for the experiment")
+    print("Preparing NiDaq for the experiment")
     print("callback number in beginning:",len(callback))
 
     i=0
@@ -688,3 +705,60 @@ def data_to_time_signal(data,samples,first='reference'):
 def merge(dict1,dict2):
     res = {**dict1,**dict2}
     return res
+
+def check_name(variable_name):
+    try:
+        type(variable_name) is str
+    except Exception as e:
+        print(f"{variable_name} is not a string.")
+# # Saving file in given directory
+# def npz_save(folder_path,file_name,**dict_args):
+
+#     if not os.path.exists(folder_path):
+#         os.makedirs(folder_path)
+
+#     total_path = os.path.join(folder_path, file_name)
+#     np.savez(total_path,**dict_args)
+
+#     if os.path.exists(total_path)==False:
+#         raise Exception('Saved file does not exist!\n')
+#     elif os.stat(total_path).st_size == False:
+#         raise Exception('Saved file is empty!\n')
+#     else:
+#         print(f"saving data_file '{file_name}' is successful!\n")
+
+#     return total_path
+
+def data_save(root_directory,inside_folders,file_name,dict_args,averages,samples):
+    year = time.ctime()[-4:]
+    date = time.ctime()[4:10].replace(' ','_')
+    current_time = time.ctime()[-13:-8].replace(':','_')
+    
+    initial_path = os.path.join(root_directory, f'exp_data/{year}/{date}')
+    inside_path = os.path.join(initial_path, *inside_folders)
+    full_path = os.path.join(inside_path, f'avgs_{averages}', f'samples_{samples}')
+    if not os.path.exists(full_path):
+        os.makedirs(full_path, exist_ok=True)
+    
+    File_name = f'[{current_time}]_{file_name}.npz'
+    
+    check_name(full_path)
+    check_name(File_name)
+    
+    try:
+        total_path = os.path.join(full_path, File_name)
+        np.savez(total_path,**dict_args)
+        # total_path = npz_save(full_path,File_name,**dict_args)
+    except Exception as e:
+        print(f"An error occurred: \n{e}")
+        print("\nPlease reduce the folder_name")
+
+    
+    if os.path.exists(total_path)==False:
+        raise Exception('Saved file does not exist!\n')
+    elif os.stat(total_path).st_size == False:
+        raise Exception('Saved file is empty!\n')
+    else:
+        print(f"saving data_file '{File_name}' is successful!\n")
+
+    return total_path
